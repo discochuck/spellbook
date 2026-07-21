@@ -27,11 +27,17 @@ models:
       tags: ['solana','epoch']
     description: >
         epochs by block slot (432000 slots per epoch)
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - block_slot
     columns:
       - name: block_time
       - name: block_slot
         data_tests:
           - unique
+          - not_null
       - name: epoch
       - name: first_block_epoch
       - name: epoch_progress
@@ -41,7 +47,9 @@ models:
   - name: solana_utils_daily_balances
     meta:
       blockchain: solana
+      short_description: "Daily SOL and SPL token balances for each Solana address, tracking how holdings change over time."
       contributors: [ilemi]
+      docs_slug: /curated/balances/solana-daily-balances
     config:
       tags: ['solana','balances']
     description: >
@@ -62,7 +70,9 @@ models:
   - name: solana_utils_latest_balances
     meta:
       blockchain: solana
+      short_description: "Latest SOL and SPL token balances for each Solana address, including token_balance_owner for delegated accounts."
       contributors: [ilemi]
+      docs_slug: /curated/balances/solana-latest-balances
     config:
       tags: ['solana','balances']
     description: >
@@ -74,22 +84,6 @@ models:
       - *token_mint_address
       - *token_balance_owner
       - *updated_at
-
-  - name: solana_utils_total_rewards
-    meta:
-      blockchain: solana
-      contributors: [ilemi]
-    config:
-      tags: ['solana','rewards']
-    description: >
-        get the total rewards paid out to each address
-    columns:
-      - &recipient 
-        name: recipient
-      - &reward_type 
-        name: reward_type
-      - &rewards
-        name: rewards
 
   - name: solana_utils_sns_domains
     meta:
@@ -117,9 +111,10 @@ models:
         get the block leaders for each slot
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - slot
-            - month
+          arguments:
+            combination_of_columns:
+              - slot
+              - month
     columns:
       - &month
         name: month

@@ -5,13 +5,17 @@ sources:
       - name: transfers
   - name: tokens_abstract
     tables:
-      - name: transfers 
+      - name: transfers
       - name: net_transfers_daily
 
   - name: tokens_apechain
     tables:
       - name: transfers     
       - name: net_transfers_daily
+
+  - name: tokens_aptos
+    tables:
+      - name: transfers
 
   - name: tokens_arbitrum
     tables:
@@ -28,11 +32,13 @@ sources:
   - name: tokens_b3
     tables:
       - name: transfers
-      - name: net_transfers_daily 
-          
+      - name: net_transfers_daily
+
+
   - name: tokens_base
     tables:
       - name: transfers
+      - name: base_transfers
       - name: net_transfers_daily
       - name: net_transfers_daily_asset
 
@@ -40,6 +46,7 @@ sources:
     tables:
       - name: transfers
       - name: net_transfers_daily
+
 
   - name: transfers_bitcoin
     tables:
@@ -72,6 +79,7 @@ sources:
       - name: transfers
       - name: net_transfers_daily
 
+
   - name: tokens_celo
     tables:
       - name: transfers
@@ -82,6 +90,7 @@ sources:
     tables:
       - name: transfers
       - name: net_transfers_daily
+
 
   - name: tokens_degen
     tables:
@@ -100,12 +109,24 @@ sources:
       - name: net_transfers_daily
       - name: net_transfers_daily_asset
 
+  - name: tokens_flow
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
+
   - name: tokens_flare
     tables:
       - name: transfers
       - name: net_transfers_daily
 
+
   - name: tokens_gnosis
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
+      - name: net_transfers_daily_asset
+
+  - name: tokens_hyperevm
     tables:
       - name: transfers
       - name: net_transfers_daily
@@ -115,10 +136,21 @@ sources:
     tables:
       - name: transfers
 
+  - name: tokens_hemi
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
+
+  - name: tokens_henesys
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
+
   - name: tokens_ink
     tables:
       - name: transfers
       - name: net_transfers_daily
+
 
   - name: tokens_kaia
     tables:
@@ -142,10 +174,22 @@ sources:
       - name: net_transfers_daily
       - name: net_transfers_daily_asset
 
+  - name: tokens_megaeth
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
+
+  - name: tokens_monad
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
+      - name: net_transfers_daily_asset
+
   - name: tokens_nova
     tables:
       - name: transfers
       - name: net_transfers_daily
+
 
   - name: tokens_opbnb
     tables:
@@ -155,8 +199,19 @@ sources:
   - name: tokens_optimism
     tables:
       - name: transfers
+      - name: base_transfers
       - name: net_transfers_daily
       - name: net_transfers_daily_asset
+
+  - name: tokens_peaq
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
+
+  - name: tokens_plasma
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
 
   - name: tokens_plume
     tables:
@@ -166,6 +221,8 @@ sources:
   - name: tokens_polygon
     tables:
       - name: transfers
+        config:
+          event_time: block_date
       - name: net_transfers_daily
       - name: net_transfers_daily_asset
       
@@ -198,10 +255,19 @@ sources:
       - name: net_transfers_daily
       - name: net_transfers_daily_asset
 
+  - name: tokens_sui
+    tables:
+      - name: transfers
+
+  - name: tokens_stellar
+    tables:
+      - name: transfers
+
   - name: tokens_shape
     tables:
       - name: transfers
       - name: net_transfers_daily
+
 
   - name: tokens_sepolia
     tables:
@@ -212,11 +278,20 @@ sources:
       - name: transfers
       - name: net_transfers_daily
 
+  - name: tokens_somnia
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
+
   - name: tokens_sophon
     tables:
       - name: transfers
       - name: net_transfers_daily
-        
+
+  - name: tokens_superseed
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
   - name: tokens_ton
     tables:
       - name: net_transfers_daily
@@ -227,10 +302,17 @@ sources:
       - name: net_transfers_daily
       - name: net_transfers_daily_asset
 
+  - name: tokens_xrpl
+    tables:
+      - name: transaction_metadata
+      - name: transfers
+      - name: net_transfers_daily
+
   - name: tokens_unichain
     tables:
       - name: transfers
       - name: net_transfers_daily
+
 
   - name: tokens_viction
     tables:
@@ -251,8 +333,14 @@ sources:
   - name: tokens_zksync
     tables:
       - name: transfers
+      - name: base_transfers
       - name: net_transfers_daily
       - name: net_transfers_daily_asset
+
+  - name: tokens_xlayer
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
 
   - name: tokens_zora
     tables:
@@ -264,6 +352,18 @@ sources:
     tables:
       - name: transfers
       - name: net_transfers_daily
+
+
+  - name: tokens_tac
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
+
+  - name: tokens_tempo
+    tables:
+      - name: transfers
+      - name: net_transfers_daily
+      - name: net_transfers_daily_asset
 
   - name: tokens_taiko
     tables:

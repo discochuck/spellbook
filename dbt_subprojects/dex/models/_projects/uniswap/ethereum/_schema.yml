@@ -14,8 +14,9 @@ models:
       Uniswap V4 ethereum DEX pools
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - id
+          arguments:
+            combination_of_columns:
+              - id
     columns:
       - &blockchain
         name: blockchain
@@ -59,8 +60,9 @@ models:
       Uniswap V3 ethereum DEX pools
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - id
+          arguments:
+            combination_of_columns:
+              - id
     columns:
       - *blockchain
       - *project
@@ -86,8 +88,9 @@ models:
       Uniswap V2 ethereum DEX pools
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - id
+          arguments:
+            combination_of_columns:
+              - id
     columns:
       - *blockchain
       - *project
@@ -113,9 +116,10 @@ models:
       Uniswap ethereum DEX pools across all versions
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - id
-            - version
+          arguments:
+            combination_of_columns:
+              - id
+              - version
     columns:
       - *blockchain
       - *project
@@ -141,10 +145,11 @@ models:
       Retrieves the most recent price (sqrtPriceX96) for each pool ID, reflecting the current price after the latest swap or liquidity modification.
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - blockchain
-            - id
-            - block_index_sum
+          arguments:
+            combination_of_columns:
+              - blockchain
+              - id
+              - block_index_sum
     columns:
       - *blockchain
       - *project
@@ -178,14 +183,16 @@ models:
       "uniswap ethereum v4 base liquidity events"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - tx_hash
-            - evt_index
-            - event_type
+          arguments:
+            combination_of_columns:
+              - tx_hash
+              - evt_index
+              - event_type
       - check_dex_base_liquidity_seed:
-          seed_file: ref('uniswap_ethereum_base_liquidity_seed')
-          filter:
-            event_type: modify_liquidity
+          arguments:
+            seed_file: ref('uniswap_ethereum_base_liquidity_seed')
+            filter:
+              event_type: modify_liquidity
     columns:
       - *blockchain
       - *project
@@ -236,10 +243,11 @@ models:
       "uniswap ethereum V3 base liquidity events"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - tx_hash
-            - evt_index
-            - event_type
+          arguments:
+            combination_of_columns:
+              - tx_hash
+              - evt_index
+              - event_type
     columns:
       - *blockchain
       - *project
@@ -270,10 +278,11 @@ models:
       "uniswap ethereum V2 base liquidity events"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - tx_hash
-            - evt_index
-            - event_type
+          arguments:
+            combination_of_columns:
+              - tx_hash
+              - evt_index
+              - event_type
     columns:
       - *blockchain
       - *project
@@ -304,10 +313,11 @@ models:
       "uniswap ethereum base liquidity events across all versions"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - tx_hash
-            - evt_index
-            - event_type
+          arguments:
+            combination_of_columns:
+              - tx_hash
+              - evt_index
+              - event_type
     columns:
       - *blockchain
       - *project
@@ -335,7 +345,139 @@ models:
       tags: [ 'dex' ]
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - block_month
-            - tx_hash
-            - evt_index   
+          arguments:
+            combination_of_columns:
+              - block_month
+              - tx_hash
+              - evt_index  
+
+  - name: uniswap_ethereum_uniswapx_base_trades
+    meta:
+      blockchain: ethereum
+      sector: dex
+      contributors: Henrystats
+    config:
+      tags: [ 'dex' ]
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - block_month
+              - tx_hash
+              - evt_index
+
+  - name: uniswap_ethereum_uniswapx_trades
+    meta:
+      blockchain: ethereum
+      sector: dex
+      contributors: Henrystats
+    config:
+      tags: [ 'dex' ]
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - block_month
+              - tx_hash
+              - evt_index
+
+  - name: uniswap_v4_ethereum_swaps
+    meta:
+      blockchain: ethereum
+      sector: dex
+      project: uniswap
+      contributors: thevaizman
+    config:
+      tags: ['ethereum', 'dex', 'trades', 'uniswap', 'v4']
+    description: >
+      All Uniswap V4 swaps on ethereum, decoded from the PoolManager swap calls. Swaps on
+      BaseAggregatorHook pools (which route the swap to an external DEX) are flagged via
+      is_aggregator_hook_swap. Feeds the venue-side uniswap_v4_ethereum.base_trades view
+      (dex.trades) and uniswap_v4_ethereum_aggregator_base_trades (dex_aggregator.trades).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - tx_hash
+              - evt_index
+    columns:
+      - name: tx_hash
+        data_tests:
+          - not_null
+      - name: evt_index
+        data_tests:
+          - not_null
+
+  - name: uniswap_v4_ethereum_aggregator_base_trades
+    meta:
+      blockchain: ethereum
+      sector: dex_aggregator
+      project: uniswap
+      contributors: thevaizman
+    config:
+      tags: ['ethereum', 'dex_aggregator', 'trades', 'uniswap', 'v4']
+    description: >
+      Uniswap V4 swaps on ethereum executed on BaseAggregatorHook pools. The hook holds no V4
+      liquidity and routes the entire swap to an external DEX, so these rows are recorded as
+      aggregator trades (project uniswap, version 4) in dex_aggregator.trades instead of
+      dex.trades, where they would double-count the backing venue's row.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - tx_hash
+              - evt_index
+      - check_dex_aggregator_seed:
+          arguments:
+            blockchain: ethereum
+            project: uniswap
+            version: 4
+    columns:
+      - name: tx_hash
+        data_tests:
+          - not_null
+      - name: evt_index
+        data_tests:
+          - not_null
+
+  - name: uniswap_v4_ethereum_sqrtpricex96_monthly
+    meta:
+      blockchain: ethereum
+      sector: dex
+      project: uniswap
+    config:
+      tags: ['ethereum', 'pools', 'liquidity', 'uniswap', 'sqrtpricex96']
+    description: >
+      Sparse monthly-latest sqrtPriceX96 rollup: one row per pool per active month (that month's latest price).
+      Seed companion for uniswap_v4_ethereum_sqrtpricex96: lets the price builder avoid
+      self-scanning its full history every run to recover each pool's previous price.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - blockchain
+              - id
+              - block_month
+    columns:
+      - name: blockchain
+        description: "Blockchain"
+        data_tests:
+          - not_null
+      - name: id
+        description: "Pool ID"
+        data_tests:
+          - not_null
+      - name: block_month
+        description: "Calendar month (date-truncated) of the price event; merge/partition key"
+        data_tests:
+          - not_null
+      - name: block_time
+        description: "Block time of this pool's latest price event in the month"
+      - name: block_number
+        description: "Block number of this pool's latest price event in the month"
+      - name: evt_index
+        description: "Event index of this pool's latest price event in the month"
+      - name: block_index_sum
+        description: "Monotonic block/tx/evt ordinal of the month's latest price event"
+      - name: sqrtpricex96
+        description: "Pool price (sqrtPriceX96) at the month's latest price event"

@@ -14,12 +14,15 @@
   {%- endif -%}
   {%- if target.name == 'prod' -%}
     {%- set properties = {
+            'dune.created_by': 'dbt_spellbook',
             'dune.public': 'true',
+            'dune.visible': 'true',
             'dune.data_explorer.blockchains':  blockchains | as_text,
             'dune.data_explorer.category': 'abstraction',
             'dune.data_explorer.abstraction.type': spell_type,
             'dune.data_explorer.abstraction.name': spell_name,
             'dune.data_explorer.contributors': validated_contributors,
+            'dune.data_explorer.freshness': var('freshness'),
             'dune.vacuum': '{"enabled":true}'
           } -%}
     {%- if model.config.materialized == "view" -%}
@@ -36,7 +39,9 @@
 {% macro hide_spells() %}
   {%- if target.name == 'prod' -%}
     {%- set properties = {
-            'dune.public': 'false',
+            'dune.created_by': 'dbt_spellbook',
+            'dune.public': 'true',
+            'dune.visible': 'false',
             'dune.data_explorer.category': 'abstraction',
             'dune.vacuum': '{"enabled":true}'
           } -%}

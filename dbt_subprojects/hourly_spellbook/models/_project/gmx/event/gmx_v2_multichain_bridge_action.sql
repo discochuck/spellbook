@@ -1,16 +1,13 @@
 {{ config(
         schema='gmx_v2',
-        alias = 'multichain_bridge_action',
-        post_hook='{{ expose_spells(\'["arbitrum", "avalanche_c"]\',
-                                    "project",
-                                    "gmx",
-                                    \'["ai_data_master","gmx-io"]\') }}'
+        alias = 'multichain_bridge_action'
+        , post_hook='{{ hide_spells() }}'
         )
 }}
 
 {%- set chains = [
     'arbitrum',
-    'avalanche_c',
+    'avalanche_c'
 ] -%}
 
 {%- for chain in chains -%}

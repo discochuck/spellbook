@@ -3,7 +3,8 @@ version: 2
 sources:
   - name: kuru_monad
     tables:
-      - name: router_evt_kururouterswap
+      - name: orderbook_evt_trade
+      - name: router_evt_marketregistered
   - name: pinot_monad
     tables:
       - name: uniswapv2factory_evt_paircreated
@@ -18,6 +19,10 @@ sources:
     tables:
       - name: uniswapv3factory_evt_poolcreated
       - name: uniswapv3pool_evt_swap
+  - name: trader_joe_v2_2_monad
+    tables:
+      - name: LBPair_evt_Swap
+      - name: LBFactory_evt_LBPairCreated
   - name: pancakeswap_v2_monad
     tables:
       - name: PancakePair_evt_Swap
@@ -26,3 +31,8 @@ sources:
     tables:
       - name: PancakeV3Pool_evt_Swap
       - name: PancakeV3Factory_evt_PoolCreated
+  - name: uniswap_v4_monad
+    tables:
+      - name: PoolManager_call_Swap
+      - name: PoolManager_evt_Swap
+      - name: PoolManager_evt_Initialize

@@ -2,12 +2,10 @@
         schema='lido_accounting_ethereum',
         alias = 'lego_expenses',
 
-        materialized = 'table',
-        file_format = 'delta',
-        post_hook='{{ expose_spells(\'["ethereum"]\',
-                                "project",
-                                "lido_accounting",
-                                \'["pipistrella", "adcv", "zergil1397"]\') }}'
+        materialized = 'incremental',
+        incremental_strategy = 'append',
+        file_format = 'delta'
+        , post_hook='{{ hide_spells() }}'
         )
 }}
 
@@ -93,6 +91,9 @@ lego_expenses_txns AS (
         contract_address
     FROM {{source('erc20_ethereum','evt_Transfer')}}
     WHERE contract_address IN (SELECT address FROM tokens)
+    {% if is_incremental() %}
+    AND {{ incremental_predicate('evt_block_time') }}
+    {% endif %}
     AND "from" IN (
         SELECT
             address
@@ -115,6 +116,9 @@ lego_expenses_txns AS (
         contract_address
     FROM {{source('erc20_ethereum','evt_Transfer')}}
     WHERE contract_address IN (SELECT address FROM tokens)
+    {% if is_incremental() %}
+    AND {{ incremental_predicate('evt_block_time') }}
+    {% endif %}
     AND to IN (
         SELECT
             address
@@ -134,6 +138,19 @@ lego_expenses_txns AS (
         contract_address AS token,
         value AS amount_token,
         evt_tx_hash
-    FROM lego_expenses_txns
+    FROM lego_expenses_txns l
     WHERE contract_address IN (SELECT address FROM tokens)
       and value != 0
+    {% if is_incremental() %}
+      -- append-only dedup: drop rows already inserted by a previous run inside the
+      -- incremental window (the model has no event index, so a merge unique_key would
+      -- collapse legitimately duplicated transfers within one tx)
+      and not exists (
+          select 1
+          from {{ this }} t
+          where t.period = l.evt_block_time
+            and t.token = l.contract_address
+            and t.amount_token = l.value
+            and t.evt_tx_hash = l.evt_tx_hash
+      )
+    {% endif %}

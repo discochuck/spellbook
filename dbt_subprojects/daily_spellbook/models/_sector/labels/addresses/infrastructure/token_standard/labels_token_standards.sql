@@ -1,9 +1,8 @@
 {{config(
-        alias = 'token_standards',
-        post_hook='{{ expose_spells(\'["arbitrum", "avalanche_c", "bnb", "ethereum", "fantom", "gnosis","goerli","optimism","polygon"]\',
-                                    "sector",
-                                    "labels",
-                                    \'["hildobby"]\') }}')}}
+        alias = 'token_standards'
+        , post_hook='{{ hide_spells() }}'
+    )
+}}
 
 
 {% set labels_models = [
@@ -14,7 +13,6 @@ ref('labels_token_standards_arbitrum')
  ,ref('labels_token_standards_ethereum')
  ,ref('labels_token_standards_fantom')
  ,ref('labels_token_standards_gnosis')
- ,ref('labels_token_standards_goerli')
  ,ref('labels_token_standards_optimism')
  ,ref('labels_token_standards_polygon')
 ] %}

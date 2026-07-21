@@ -6,10 +6,7 @@
     , file_format = 'delta'
     , incremental_strategy = 'merge'
     , unique_key = ['l1_token', 'l2_token']
-    , post_hook='{{ expose_spells(\'["optimism"]\',
-                                "sector",
-                                "tokens",
-                                \'["msilb7"]\') }}'
+    , post_hook='{{ hide_spells() }}'
   )
 }}
 
@@ -26,7 +23,10 @@ FROM (
 
         SELECT l1Token AS l1_token, l2Token AS l2_token, NULL AS symbol, NULL AS decimals
             FROM {{source( 'optimism_ethereum', 'L1StandardBridge_evt_ERC20DepositInitiated' ) }}
-        WHERE evt_tx_hash != 0x460965f169a99b3d372cd749621a3652ad232d1b1580fd77424eacc2e973b672 --bad event emitted
+        WHERE evt_tx_hash NOT IN (
+            0x460965f169a99b3d372cd749621a3652ad232d1b1580fd77424eacc2e973b672 --bad event emitted
+            ,0x180bce7dc523b1631cb8d7e8f0ca75cf26db46c73c32c06d9563cc465b6f0af5 --bright-union (0xbeab71..) self-bridged onto bright-token's optimism L2 (0x65334ce5..); creates a duplicate (blockchain, contract_address) with a wrong price downstream
+        )
         {% if is_incremental() %}
         AND evt_block_time >= date_trunc('day', now() - interval '7' day)
         {% endif %}
@@ -55,7 +55,7 @@ FROM (
 
     ) map
 
-LEFT JOIN {{ ref('tokens_ethereum_v1_erc20') }} et
+LEFT JOIN {{ source('tokens_ethereum', 'erc20') }} et
     ON et.contract_address = map.l1_token
 ) fin
 WHERE rnk =1

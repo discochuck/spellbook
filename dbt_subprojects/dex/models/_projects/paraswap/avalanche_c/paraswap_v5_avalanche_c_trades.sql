@@ -7,11 +7,8 @@
     file_format = 'delta',
     incremental_strategy = 'merge',
 incremental_predicates = [incremental_predicate('DBT_INTERNAL_DEST.block_time')],
-    unique_key = ['block_date', 'blockchain', 'project', 'version', 'tx_hash', 'evt_index', 'trace_address'],
-    post_hook='{{ expose_spells(\'["avalanche_c"]\',
-                                "project",
-                                "paraswap_v5",
-                                \'["Henrystats"]\') }}'
+    unique_key = ['block_date', 'blockchain', 'project', 'version', 'tx_hash', 'evt_index', 'trace_address']
+    , post_hook='{{ hide_spells() }}'
     )
 }}
 
@@ -69,6 +66,7 @@ price_missed_previous AS (
         SELECT minute, contract_address, decimals, symbol, price
         FROM {{ source('prices', 'usd') }}
         WHERE contract_address = 0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664 -- USDC.e
+            AND minute <= TIMESTAMP '2020-01-01' -- first record is 2018-10-23; bound so the prices fact table file-skips
         ORDER BY minute
         LIMIT 1
     ),
@@ -77,6 +75,7 @@ price_missed_previous AS (
         SELECT minute, contract_address, decimals, symbol, price
         FROM {{ source('prices', 'usd') }}
         WHERE contract_address = 0xc7198437980c041c805a1edcba50c1ce5db95118 -- USDT.e
+            AND minute <= TIMESTAMP '2020-01-01' -- first record is 2015-03-11; bound so the prices fact table file-skips
         ORDER BY minute
         LIMIT 1
     )
@@ -96,6 +95,7 @@ price_missed_next AS (
         SELECT minute, contract_address, decimals, symbol, price
         FROM {{ source('prices', 'usd') }}
         WHERE contract_address = 0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664 -- USDC.e
+            AND minute >= now() - interval '7' day -- bound so the prices fact table file-skips
         ORDER BY minute DESC
         LIMIT 1
     ),
@@ -104,6 +104,7 @@ price_missed_next AS (
         SELECT minute, contract_address, decimals, symbol, price
         FROM {{ source('prices', 'usd') }}
         WHERE contract_address = 0xc7198437980c041c805a1edcba50c1ce5db95118 -- USDT.e
+            AND minute >= now() - interval '7' day -- bound so the prices fact table file-skips
         ORDER BY minute DESC
         LIMIT 1
     )
@@ -119,7 +120,7 @@ price_missed_next AS (
 
 SELECT
     'avalanche_c' as blockchain,
-    'paraswap' as project,
+    'velora' as project,
     '5' as version,
     cast(date_trunc('day', dexs.block_time) as date) as block_date,
     cast(date_trunc('month', dexs.block_time) as date) as block_month,

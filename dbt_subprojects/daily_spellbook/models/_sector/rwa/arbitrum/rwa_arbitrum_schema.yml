@@ -14,8 +14,9 @@ models:
     description: "RWA tokens"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - token_address
+          arguments:
+            combination_of_columns:
+              - token_address
 
     columns:
     - &token_address
@@ -50,8 +51,9 @@ models:
     description: "RWA tokens DEX Pools"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - token_address, pool
+          arguments:
+            combination_of_columns:
+              - token_address, pool
 
     columns:
     - *project
@@ -66,58 +68,6 @@ models:
     - *project
     - *type
 
-  - name: rwa_arbitrum_balances
-
-    meta:
-      blockchain: arbitrum
-      sector: rwa
-      project: rwa
-      contributors: maybeYonas, pyor_xyz
-
-    config:
-      tags: ['rwa', 'balances']
-    description: "Balances of RWA token holders"
-    data_tests:
-      - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - day
-            - address
-            - token_address
-    columns:
-    - &blockchain
-      name: blockchain
-      description: "Blockchain for the token"
-    - *project
-    - *version
-    - &day
-      name: day
-      description: "Date on which the token balance is logged"
-    - &address
-      name: address
-      description: "Address for the token holder"
-    - &token_symbol
-      name: token_symbol
-      description: "Symbol for the token"
-    - *token_address
-    - &token_standard
-      name: token_standard
-      description: "Standard for the token"
-    - &token_id
-      name: token_id
-      description: "ID for the token"
-    - &balance
-      name: balance
-      description: "Balance for the user"
-    - &balance_usd
-      name: balance_usd
-      description: "USD value of balance for the user"
-    - &last_updated
-      name: last_updated
-      description: "UTC timestamp when data was last updated"
-    - &next_update
-      name: next_update
-      description: "UTC timestamp when data is next updated"
-
   - name: rwa_arbitrum_dex_balances
 
     meta:
@@ -131,21 +81,32 @@ models:
     description: "Balances of RWA token DEXes"
     data_tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - day
-            - address
-            - token_address
+          arguments:
+            combination_of_columns:
+              - day
+              - address
+              - token_address
     columns:
-    - *blockchain
+    - name: blockchain
+      description: "Blockchain for the token"
     - *project
     - *version
-    - *day
-    - *address
-    - *token_symbol
+    - name: day
+      description: "Date on which the token balance is logged"
+    - name: address
+      description: "Address for the token holder"
+    - name: token_symbol
+      description: "Symbol for the token"
     - *token_address
-    - *token_standard
-    - *token_id
-    - *balance
-    - *balance_usd
-    - *last_updated
-    - *next_update
+    - name: token_standard
+      description: "Standard for the token"
+    - name: token_id
+      description: "ID for the token"
+    - name: balance
+      description: "Balance for the user"
+    - name: balance_usd
+      description: "USD value of balance for the user"
+    - name: last_updated
+      description: "UTC timestamp when data was last updated"
+    - name: next_update
+      description: "UTC timestamp when data is next updated"

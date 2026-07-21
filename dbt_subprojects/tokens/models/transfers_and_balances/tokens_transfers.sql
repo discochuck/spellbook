@@ -12,11 +12,11 @@
     ,'boba'
     ,'celo'
     ,'corn'
+    ,'cronos'
     ,'degen'
     ,'ethereum'
     ,'fantom'
     ,'flare'
-    ,'flow'
     ,'gnosis'
     ,'hemi'
     ,'henesys'
@@ -26,8 +26,10 @@
     ,'katana'
     ,'linea'
     ,'mantle'
+    ,'megaeth'
     ,'mezo'
     ,'monad'
+    ,'morph'
     ,'nova'
     ,'opbnb'
     ,'optimism'
@@ -35,7 +37,9 @@
     ,'plasma'
     ,'plume'
     ,'polygon'
+    ,'robinhood'
     ,'ronin'
+    ,'rise'
     ,'scroll'
     ,'sei'
     ,'shape'
@@ -46,10 +50,13 @@
     ,'superseed'
     ,'tac'
     ,'taiko'
+    ,'tempo'
+    ,'tezos_evm'
     ,'tron'
     ,'unichain'
     ,'viction'
     ,'worldchain'
+    ,'xlayer'
     ,'zkevm'
     ,'zksync'
     ,'zora'
@@ -91,6 +98,7 @@ FROM (
         , amount
         , price_usd
         , amount_usd
+        , _updated_at
     FROM {{ ref('tokens_'~chain~'_transfers') }}
     {% if not loop.last %}
     UNION ALL

@@ -7,12 +7,7 @@
     , incremental_strategy = 'merge'
     , unique_key = ['blockchain', 'project', 'version', 'id', 'block_date']
     , incremental_predicates = [incremental_predicate('DBT_INTERNAL_DEST.block_date')]
-    , post_hook='{{ expose_spells(\'[
-                                      "ethereum","arbitrum","base","ink","blast","optimism","blast","bnb","zora","avalanche_c","unichain","worldchain"
-                                    ]\',
-                                    "project",
-                                    "uniswap",
-                                    \'["Henrystats"]\') }}')
+    , post_hook='{{ hide_spells() }}')
 }}
 
 {% if is_incremental() %}
@@ -102,6 +97,10 @@ days as (
         timestamp as day 
     from 
     {{ source('utils','days') }}
+    -- bound the calendar to the forward-fill window: the join below only matches days >= the earliest
+    -- anchor (block_date), so earlier days can never join. Without this, ~6.4k days of full history get
+    -- cross-joined against every anchor row, exploding into a nested-loop scan (the model's top cost).
+    where timestamp >= (select min(block_date) from daily_events_final)
 ),
 
 tvl_daily as (
@@ -220,6 +219,11 @@ daily_events as (
         , amount1
     from 
     {{ ref('uniswap_daily_agg_liquidity_events') }}
+    {% if target.name == 'ci' %}
+    -- bound the CI full-refresh scan so the initial build completes under the 90-min timeout and the
+    -- unique_combination_of_columns test runs on real CI data; prod renders without this.
+    where block_date >= current_date - interval '14' day
+    {% endif %}
 ),
 
 daily_cum as (
@@ -239,6 +243,9 @@ days as (
         timestamp as day 
     from 
     {{ source('utils','days') }}
+    -- bound the calendar to the forward-fill window (see incremental branch); prunes the same
+    -- full-history cross-join on a full refresh.
+    where timestamp >= (select min(block_date) from daily_events)
 ),
 
 tvl_daily as (

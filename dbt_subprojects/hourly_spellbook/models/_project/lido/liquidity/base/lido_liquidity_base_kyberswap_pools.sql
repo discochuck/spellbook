@@ -5,11 +5,8 @@
     file_format = 'delta',
     incremental_strategy = 'merge',
     unique_key = ['pool', 'time'],
-    incremental_predicates = [incremental_predicate('DBT_INTERNAL_DEST.time')],
-    post_hook='{{ expose_spells(blockchains = \'["base"]\',
-                                spell_type = "project",
-                                spell_name = "lido_liquidity",
-                                contributors = \'["pipistrella", "kemasan"]\') }}'
+    incremental_predicates = [incremental_predicate('DBT_INTERNAL_DEST.time')]
+    , post_hook='{{ hide_spells() }}'
     )
 }}
 
@@ -69,7 +66,7 @@ from (
         decimals,
         last_value(price) over (partition by DATE_TRUNC('day', minute), contract_address ORDER BY  minute NULLS FIRST range between unbounded preceding AND unbounded following) AS price
     FROM {{source('prices','usd')}} p
-    WHERE date_trunc('day', minute) = current_date
+    WHERE minute >= current_date and minute < current_date + interval '1' day
     and blockchain = 'base'
     and contract_address in (select address from tokens)
       

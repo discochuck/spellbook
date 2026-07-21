@@ -6,11 +6,8 @@
     file_format = 'delta',
     incremental_strategy = 'merge',
     incremental_predicates = [incremental_predicate('DBT_INTERNAL_DEST.block_time')],
-    unique_key = ['block_date', 'blockchain', 'project', 'version', 'tx_hash', 'method', 'trace_address'],
-    post_hook='{{ expose_spells(\'["polygon"]\',
-                                "project",
-                                "paraswap_v6",
-                                \'["eptighte", "mwamedacen"]\') }}'
+    unique_key = ['block_date', 'blockchain', 'project', 'version', 'tx_hash', 'method', 'trace_address']
+    , post_hook='{{ hide_spells() }}'
     )
 }}
 
@@ -18,6 +15,7 @@
 
 with dexs AS (
     SELECT
+        project,
         blockTime AS block_time,
         blockNumber AS block_number,
         from_hex(beneficiary) AS taker,
@@ -50,6 +48,7 @@ price_missed_previous AS (
     SELECT minute, contract_address, decimals, symbol, price
     FROM {{ source('prices', 'usd') }}
     WHERE contract_address = 0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270 -- WMATIC
+        AND minute <= TIMESTAMP '2020-01-01' -- first record is 2019-05-13; bound so the prices fact table file-skips
     ORDER BY minute
     LIMIT 1
 ),
@@ -59,12 +58,13 @@ price_missed_next AS (
     SELECT minute, contract_address, decimals, symbol, price
     FROM {{ source('prices', 'usd') }}
     WHERE contract_address = 0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270 -- WMATIC
+        AND minute >= now() - interval '7' day -- bound so the prices fact table file-skips
     ORDER BY minute desc
     LIMIT 1
 )
 
 SELECT 'polygon' AS blockchain,
-    'paraswap' AS project,
+    project,
     '6' AS version,
     cast(date_trunc('day', d.block_time) as date) as block_date,
     cast(date_trunc('month', d.block_time) as date) as block_month,

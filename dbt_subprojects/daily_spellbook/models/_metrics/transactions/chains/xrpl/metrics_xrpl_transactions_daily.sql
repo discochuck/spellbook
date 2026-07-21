@@ -10,17 +10,18 @@
     )
 }}
 
-SELECT
+select
     blockchain
     , block_date
-    , approx_distinct(tx_hash) AS tx_count
-FROM
-    {{ ref('tokens_xrpl_transfers') }}
-WHERE
-    amount_usd >= 1  -- $1 filter for significant transactions
+    , approx_distinct(tx_hash) as tx_count -- max 2% error, matching EVM metrics
+from
+    {{ source('tokens_xrpl', 'transfers') }}
+where
+    blockchain = 'xrpl'
+    and amount_usd >= 1
     {% if is_incremental() %}
-    AND {{ incremental_predicate('block_date') }}
+    and {{ incremental_predicate('block_date') }}
     {% endif %}
-GROUP BY
+group by
     blockchain
     , block_date

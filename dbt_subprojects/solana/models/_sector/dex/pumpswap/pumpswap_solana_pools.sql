@@ -26,6 +26,7 @@ WITH pool_creation AS (
     FROM {{ source('solana','instruction_calls') }}
     WHERE varbinary_starts_with(data, 0xe445a52e51cb9a1db1310cd2a076a774)
         AND executing_account = 'pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA'
+        AND executing_account_prefix = 'pA'
         AND tx_success = true
     {% if is_incremental() %}
     AND {{incremental_predicate('block_time')}}
@@ -41,5 +42,13 @@ SELECT
     p.baseMint,
     p.quoteMint,
     p.baseMintDecimals,
-    p.quoteMintDecimals
+    p.quoteMintDecimals,
+    p.quoteMint IN (
+        'So11111111111111111111111111111111111111112' -- SOL
+        ,'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So' -- mSOL
+        ,'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' -- USDC
+        ,'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' -- USDT
+        ,'pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn' -- PUMP
+        ,'DEkqHyPN7GMRJ5cArtQFAWefqbZb33Hyf6s5iCwjEonT' -- BONK
+    ) AS is_valid_pool
 FROM pool_creation p

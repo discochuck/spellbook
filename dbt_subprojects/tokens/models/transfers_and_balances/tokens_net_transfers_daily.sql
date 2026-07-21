@@ -22,19 +22,25 @@
     , 'hemi'
     , 'linea'
     , 'mantle'
+    , 'megaeth'
     , 'mezo'
     , 'monad'
+    , 'morph'
     , 'opbnb'
     , 'optimism'
     , 'plasma'
     , 'polygon'
+    , 'robinhood'
     , 'ronin'
+    , 'rise'
     , 'scroll'
     , 'sei'
     , 'shape'
     , 'superseed'
     , 'tac'
     , 'taiko'
+    , 'tempo'
+    , 'tezos_evm'
     , 'tron'
     , 'unichain'
     , 'zkevm'
@@ -44,6 +50,7 @@
     , 'apechain'
     , 'berachain'
     , 'corn'
+    , 'cronos'
     , 'degen'
     , 'flare'
     , 'henesys'
@@ -61,6 +68,7 @@
     , 'story'
     , 'viction'
     , 'worldchain'
+    , 'xlayer'
 ] %}
 
 SELECT *
@@ -76,4 +84,3 @@ FROM (
         {% endif %}
         {% endfor %}
 )
-

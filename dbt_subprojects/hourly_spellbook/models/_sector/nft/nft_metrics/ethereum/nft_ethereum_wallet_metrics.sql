@@ -1,0 +1,296 @@
+{{ config(
+    schema = 'nft_ethereum',
+    alias = 'wallet_metrics',
+    materialized='table',
+    file_format = 'delta'
+    , post_hook='{{ hide_spells() }}'
+    )
+}}
+
+with
+--- filtering out wash trades based on definition in this model https://github.com/duneanalytics/spellbook/blob/main/models/nft/nft_wash_trades.sql
+--- the ethereum / ETH-WETH / single-item / non-self-trade filters are applied here (and on the
+--- mints branch below) instead of after the union, so the trades / wash_trades / mints scans
+--- prune to the ethereum slice once instead of re-scanning every chain
+nft_trades_no_wash as
+( select nft.*
+    from {{ref('nft_trades')}} nft
+    INNER JOIN {{ref('nft_wash_trades')}} wt ON wt.block_number=nft.block_number
+    AND wt.unique_trade_id=nft.unique_trade_id
+    AND wt.blockchain = 'ethereum'
+    where is_wash_trade = FALSE
+    AND nft.blockchain = 'ethereum'
+    AND nft.currency_symbol IN ('ETH', 'WETH')
+    AND nft.buyer != nft.seller
+    AND nft.number_of_items = UINT256 '1'
+    AND nft.amount_original IS NOT NULL ),
+
+--- adding in mints because a mint can be interpreted as a buy for $0 or gas fees
+nft_trades_no_wash_w_mints as (
+select aggregator_address       as aggregator_address,
+       aggregator_name          as aggregator_name,
+       amount_original          as amount_original,
+       amount_raw,
+       amount_usd               as amount_usd,
+       block_number             as block_number,
+       block_time            as block_time,
+       blockchain               as blockchain,
+       buyer                    as buyer,
+       collection               as collection,
+       currency_contract        as currency_contract,
+       currency_symbol          as currency_symbol,
+       evt_type                 as evt_type,
+       nft_contract_address     as nft_contract_address,
+       number_of_items,
+       project                  as project,
+       project_contract_address as project_contract_address,
+       seller                   as seller,
+       token_id                 as token_id,
+       token_standard           as token_standard,
+       trade_category           as trade_category,
+       trade_type               as trade_type,
+       tx_from                  as tx_from,
+       tx_hash                  as tx_hash,
+       tx_to                    as tx_to,
+       version                  as version
+from nft_trades_no_wash
+
+UNION ALL
+
+select aggregator_address       as aggregator_address,
+       aggregator_name          as aggregator_name,
+       amount_original          as amount_original,
+       amount_raw,
+       amount_usd               as amount_usd,
+       block_number             as block_number,
+       block_time            as block_time,
+       blockchain               as blockchain,
+       buyer                    as buyer,
+       collection               as collection,
+       currency_contract        as currency_contract,
+       currency_symbol          as currency_symbol,
+       evt_type                 as evt_type,
+       nft_contract_address     as nft_contract_address,
+       number_of_items,
+       project                  as project,
+       project_contract_address as project_contract_address,
+       seller                   as seller,
+       token_id                 as token_id,
+       token_standard           as token_standard,
+       trade_category           as trade_category,
+       trade_type               as trade_type,
+       tx_from                  as tx_from,
+       tx_hash                  as tx_hash,
+       tx_to                    as tx_to,
+       version                  as version
+from {{ref('nft_mints')}}
+where blockchain = 'ethereum'
+  AND currency_symbol IN ('ETH', 'WETH')
+  AND buyer != seller
+  AND number_of_items = UINT256 '1'
+  AND amount_original IS NOT NULL
+)
+,
+-- creating a longform version of buys and sells: one scan fanned out into a sell row (seller)
+-- and a buy row (buyer) per trade, instead of two UNION ALL branches re-scanning the source
+buys_and_sells_nft_trades_no_wash_w_mints as
+(
+    SELECT
+        side.wallet,
+        src.project,
+        src.collection,
+        src.nft_contract_address,
+        src.token_standard,
+        src.token_id,
+        side.trade_type,
+        src.block_time,
+        src.tx_hash,
+        case when side.trade_type = 'buy' then -1 * src.amount_usd else src.amount_usd end as amount_usd,
+        case when side.trade_type = 'buy' then -1 * src.amount_original else src.amount_original end as eth_amount
+    FROM
+        nft_trades_no_wash_w_mints src
+    CROSS JOIN unnest(array[src.seller, src.buyer], array['sell', 'buy']) as side(wallet, trade_type)
+),
+----- FLOOR PRICES -------
+----- FIRST SOURCE: Reservoir - includes offchain sources
+reservoir_floors as (
+    -- reads a one-time snapshot of the deprecated reservoir community dataset
+    -- (see nft_ethereum_wallet_metrics_reservoir_floors) instead of re-scanning ~61.6 GB hourly
+    select contract,
+        price_decimal,
+        row_number() over (partition by contract order by created_at desc) rn_desc
+    from {{ ref('nft_ethereum_wallet_metrics_reservoir_floors') }}
+    where 1 = 1
+    and valid_until_dt > current_date
+    and valid_until < 100000000000 -- overflow protection
+),
+reservoir_floors_latest_avg as
+(
+    select contract
+        , avg(price_decimal) avg_floor_price
+    from reservoir_floors
+    -- use avg of latest 3 floor prices
+    where rn_desc <= 3
+    group by 1
+),
+----- SECOND SOURCE: nft_ethereum.collection_stats - based on {{ref('nft_trades')}} 5th percentile of latest traded day
+eth_collection_stats_floor as (
+    select nft_contract_address,
+        price_p5_eth,
+        row_number() over (partition by nft_contract_address order by block_date desc) rn
+    from {{ref('nft_ethereum_collection_stats')}}
+),
+
+eth_collection_stats_latest_floor as (
+    select nft_contract_address,
+        price_p5_eth
+    from eth_collection_stats_floor
+    where rn = 1
+),
+
+-- the next trade per (wallet, collection, token) is taken with lead() in a single window pass,
+-- replacing the previous row_number() + self-join (which re-computed the whole pipeline twice
+-- and was the skewed join in the plan). The order-by is not a strict total order (rows identical on
+-- all eight keys can still tie), but the wallet metrics are invariant to that residual tie: every
+-- value the result reads is either a partition key or one of these order-by keys (lead() only reads
+-- trade_type/block_time/tx_hash/amount_usd/eth_amount), so tied rows carry identical buy/sell values
+-- and whichever one the pairing keeps contributes the same numbers. Verified on full prod data:
+-- adding a per-row unique id to the order-by leaves the output bit-identical (same wallet count, same
+-- checksum over every integer count column, same eth sums) -- so the unique id is omitted to avoid
+-- doubling the window's peak memory (a ~90-char key over ~100M rows) for no change in result.
+buys_and_sells_w_index as (
+select wallet,
+       nft_contract_address,
+       project,
+       collection,
+       token_standard,
+       token_id,
+       trade_type,
+       block_time,
+       tx_hash,
+       amount_usd,
+       eth_amount,
+       lead(trade_type) over w as next_trade_type,
+       lead(block_time) over w as next_block_time,
+       lead(tx_hash)    over w as next_tx_hash,
+       lead(amount_usd) over w as next_amount_usd,
+       lead(eth_amount) over w as next_eth_amount
+from buys_and_sells_nft_trades_no_wash_w_mints
+window w as (partition by wallet, nft_contract_address, token_id
+             order by block_time, tx_hash, trade_type, amount_usd, eth_amount, project, collection, token_standard)
+),
+
+lastest_eth_price_usd as (
+select blockchain,
+       minute,
+       price
+from {{source('prices', 'usd_latest')}}
+where blockchain = 'ethereum' and symbol = 'WETH'
+),
+
+
+
+
+all_trades_profit_and_unrealized_profit as (
+select wallet,
+       nft_contract_address,
+       project,
+       collection,
+       token_standard,
+       token_id,
+       case when next_trade_type is not null then 1 else 0 end                                 nft_was_sold,
+       block_time                                                                              buy_block_time,
+       next_block_time                                                                         sell_block_time,
+       -- Sell time else current time (for calculating ROI)
+       coalesce(next_block_time, current_timestamp)                                            sell_block_time_or_current_time,
+       tx_hash                                                                                 buy_tx_hash,
+       next_tx_hash                                                                            sell_tx_hash,
+       amount_usd                                                                              buy_amount_usd,
+       next_amount_usd                                                                         sell_amount_usd,
+       eth_amount                                                                              buy_amount_eth,
+       -- Sell amount else current floor (for calculating ROI)
+       next_eth_amount                                                                         sell_amount_eth,
+       case when next_trade_type is not null then next_eth_amount + eth_amount else 0 end      eth_profit_realized
+from buys_and_sells_w_index
+where 1 = 1
+  and trade_type = 'buy'
+  and coalesce(next_trade_type, 'sell') = 'sell'
+),
+
+--- Hacky split to fix bloom size error
+all_trades_profit_and_unrealized_profit_w_floors as
+
+    (select
+        b.*,
+        coalesce(floors1.avg_floor_price * p.price, floors2.price_p5_eth * p.price, 0)          floor_usd,
+               coalesce(sell_amount_usd, floors1.avg_floor_price * p.price, floors2.price_p5_eth * p.price, 0) +
+               buy_amount_usd                                                                            usd_profit,
+
+        coalesce(floors1.avg_floor_price, floors2.price_p5_eth, 0)                              floor_eth,
+        coalesce(sell_amount_eth, floors1.avg_floor_price, floors2.price_p5_eth, 0)                sell_amount_eth_or_floor,
+        case
+           when nft_was_sold = 0 then coalesce(floors1.avg_floor_price, floors2.price_p5_eth, 0) + buy_amount_eth
+           else 0 end                                                                          eth_profit_unrealized,
+        coalesce(sell_amount_eth, floors1.avg_floor_price, floors2.price_p5_eth, 0) + buy_amount_eth eth_profit
+    FROM all_trades_profit_and_unrealized_profit b
+    left join reservoir_floors_latest_avg floors1
+        on floors1.contract = b.nft_contract_address
+    left join eth_collection_stats_latest_floor floors2
+        on floors2.nft_contract_address = b.nft_contract_address
+    CROSS JOIN lastest_eth_price_usd p),
+
+aggregated_wallet_trading_stats as (
+select wallet,
+       count(distinct nft_contract_address)                                                  unique_collections_traded,
+       count(1)                                                                              buys_count,
+       sum(nft_was_sold)                                                                     sells_count,
+       sum(nft_was_sold)                                                                     trades_count,
+       sum(case when eth_profit_realized > 0 then 1 else 0 end)                              profitable_trades_count,
+       --- 0 profit trades are also considered uprofitable
+       sum(case when nft_was_sold = 1 and eth_profit_realized <= 0 then 1 else 0 end)        unprofitable_trades_count,
+        CASE
+            WHEN sum(nft_was_sold) = 0 THEN NULL
+            ELSE (sum(case when eth_profit_realized > 0 then 1 else 0 end) * 1.00 / sum(nft_was_sold))
+        END AS win_percentage,
+        CASE
+            WHEN sum(nft_was_sold) = 0 THEN NULL
+            ELSE (sum(case when eth_profit_realized < 0 then 1 else 0 end) * 1.00 / sum(nft_was_sold))
+        END AS loss_percentage,
+        CASE
+            WHEN sum(nft_was_sold) = 0 THEN NULL
+            ELSE (sum(case when nft_was_sold = 1 and eth_profit_realized = 0 then 1 else 0 end) * 1.00 / sum(nft_was_sold))
+        END AS breakeven_percentage,
+       sum(buy_amount_eth * -1)                                                              spent_eth,
+       sum((case when nft_was_sold = 1 then buy_amount_eth else 0 end) * -1)                 spent_eth_realized,
+       sum((case when nft_was_sold = 0 then buy_amount_eth else 0 end) * -1)                 spent_eth_unrealized,
+       sum(sell_amount_eth_or_floor)                                                         gained_eth,
+       sum(sell_amount_eth)                                                                  gained_eth_realized,
+       sum(case when nft_was_sold = 0 then floor_eth else 0 end)                             gained_eth_unrealized,
+        CASE
+            WHEN sum(buy_amount_eth * -1) = 0 THEN NULL
+            ELSE ((sum(sell_amount_eth_or_floor) * 1.00 / sum(buy_amount_eth * -1)) - 1)
+        END AS roi_eth,
+
+        CASE
+            WHEN sum((case when nft_was_sold = 1 then buy_amount_eth else 0 end) * -1) = 0 THEN NULL
+            ELSE ((sum(sell_amount_eth) * 1.00 / sum((case when nft_was_sold = 1 then buy_amount_eth else 0 end) * -1)) - 1)
+        END AS roi_eth_realized,
+
+        CASE
+            WHEN sum((case when nft_was_sold = 0 then buy_amount_eth else 0 end) * -1) = 0 THEN NULL
+            ELSE ((sum(floor_eth) * 1.00 / sum((case when nft_was_sold = 0 then buy_amount_eth else 0 end) * -1)) - 1)
+        END AS roi_eth_unrealized,
+       sum(eth_profit)                                                                       eth_profit,
+       sum(eth_profit_realized)                                                              eth_profit_realized,
+       sum(eth_profit_unrealized)                                                            eth_profit_unrealized,
+       avg(case when eth_profit_realized > 0 then eth_profit_realized end)                   avg_win_size,
+       avg(case when eth_profit_realized < 0 then eth_profit_realized end)                   avg_loss_size,
+       -- count(distinct date_trunc('week', buy_block_time)) +  unique_weeks_active,
+       count(distinct date_trunc('week', buy_block_time))                                    unique_weeks_buying,
+       count(distinct date_trunc('week', sell_block_time))                                   unique_weeks_selling
+
+from all_trades_profit_and_unrealized_profit_w_floors
+group by 1
+)
+
+select * from aggregated_wallet_trading_stats

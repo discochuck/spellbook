@@ -1,11 +1,9 @@
 {{ config(
         tags = [ 'static'],
         schema='dex',
-        alias = 'info',
-        post_hook='{{ expose_spells(\'["ethereum", "polygon", "bnb", "avalanche_c", "gnosis", "fantom", "optimism", "arbitrum", "celo", "base", "solana", "zksync", "boba"]\',
-                                    "sector",
-                                    "dex",
-                                    \'["hildobby"]\') }}')
+        alias = 'info'
+        , post_hook='{{ hide_spells() }}'
+)
 }}
 
 SELECT project, name, marketplace_type, x_username
@@ -25,6 +23,7 @@ FROM (VALUES
     , ('bancor_network', 'Bancor', 'Direct', 'Bancor') -- To Fix, should be just bancor
     , ('bancor', 'Bancor', 'Direct', 'Bancor')
     , ('ellipsis_finance', 'Ellipsis', 'Direct', 'Ellipsisfi')
+    , ('lista_smartswap', 'Lista SmartSwap', 'Direct', 'lista_dao')
     , ('babyswap', 'BabySwap', 'Direct', 'babyswap_bsc')
     , ('apeswap', 'ApeSwap', 'Direct', 'ape_swap')
     , ('shibaswap', 'ShibaSwap', 'Direct', 'ShibaSwapDEX')
@@ -71,6 +70,7 @@ FROM (VALUES
     , ('1inch-LOP', '1inch Limit Order Protocol', 'Aggregator', '1inch')
     , ('zeroex', '0x', 'Aggregator', '0xProject')
     , ('0x-API', '0x API', 'Aggregator', '0xProject')
+    , ('0x API', '0x API Settler', 'Direct & Aggregator', '0xProject') -- 0x Settler RFQ PMM venue (version 'settler')
     , ('paraswap', 'ParaSwap', 'Aggregator', 'paraswap')
     , ('cow_protocol', 'CoW Swap', 'Aggregator', 'CoWSwap')
     , ('openocean', 'OpenOcean', 'Aggregator', 'OpenOceanGlobal')
@@ -101,6 +101,8 @@ FROM (VALUES
     , ('solidlizard', 'SolidLizard', 'Direct', 'solidlizardfi')
     , ('pharaoh', 'Pharaoh', 'Direct', 'PharaohExchange')
     , ('ramses', 'Ramses', 'Direct', 'ramses')
+    , ('ramsesxyz', 'Ramses', 'Direct', 'ramses')
+    , ('nest', 'Nest', 'Direct', 'NestExchange')
     , ('scale', 'Scale', 'Direct', 'scale')
     , ('baseswap', 'Baseswap', 'Direct', 'Baseswap')
     , ('oasisswap', 'OasisSwap', 'Direct', 'OasisSwapDEX')
@@ -245,4 +247,18 @@ FROM (VALUES
     , ('mezo_swap', 'Mezo Swap', 'Direct', 'mezoswap')
     , ('kuru', 'Kuru', 'Direct', 'kuru')
     , ('pinot', 'Pinot', 'Direct', 'pinot')
+    , ('nad_fun', 'nad.fun', 'Direct', 'naddotfun')
+    , ('potatoswap', 'PotatoSwap', 'Direct', 'potatoswap')
+    , ('elfomofi', 'ElfomoFi', 'Direct', 'elfomo_fi')
+    , ('kumbaya', 'Kumbaya', 'Direct', 'kumbaya')
+    , ('prismfi', 'PrismFI', 'Direct', 'PrismFI')
+    , ('supernova', 'Supernova', 'Direct', 'SupernovaDEX')
+    , ('sunswap', 'SunSwap', 'Direct', 'SunSwap')
+    , ('tempo_exchange', 'Tempo Exchange', 'Direct', 'tempo')
+    , ('bitget_dex_aggregator', 'Bitget Wallet Aggregator', 'Aggregator', 'BitgetWalletAggregator')
+    , ('tessera_v', 'Tessera-V', 'Direct', 'tessera_v')
+    , ('bulba', 'Bulba', 'Direct', 'bulba')
+    , ('vvs_finance', 'VVS Finance', 'Direct', 'VVS_finance')
+    , ('cronaswap', 'CronaSwap', 'Direct', 'CronaSwap_org')
+    , ('ferro', 'Ferro', 'Direct', 'FerroProtocol')
 ) AS temp_table (project, name, marketplace_type, x_username)

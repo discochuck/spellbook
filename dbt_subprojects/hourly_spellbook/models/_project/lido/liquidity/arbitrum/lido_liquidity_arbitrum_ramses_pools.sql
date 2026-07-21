@@ -5,11 +5,8 @@
     file_format = 'delta',
     incremental_strategy = 'merge',
     unique_key = ['pool', 'time'],
-    incremental_predicates = [incremental_predicate('DBT_INTERNAL_DEST.time')],
-    post_hook='{{ expose_spells(blockchains = \'["arbitrum"]\',
-                                spell_type = "project",
-                                spell_name = "lido_liquidity",
-                                contributors = \'["pipistrella"]\') }}'
+    incremental_predicates = [incremental_predicate('DBT_INTERNAL_DEST.time')]
+    , post_hook='{{ hide_spells() }}'
     )
 }}
 
@@ -87,7 +84,7 @@ with
     FROM
       {{source('prices','usd')}} p
     WHERE
-      DATE_TRUNC('day', minute) = current_date
+      minute >= current_date and minute < current_date + interval '1' day
       AND blockchain = 'arbitrum'
       AND contract_address IN (SELECT address  FROM tokens      )
   ),

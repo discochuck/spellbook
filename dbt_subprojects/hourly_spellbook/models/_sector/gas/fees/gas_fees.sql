@@ -1,126 +1,14 @@
+{% set chains = gas_evm_chains() + ['tron'] %}
+
 {{ config(
     schema = 'gas',
     alias = 'fees',
-    post_hook='{{ expose_spells(\'[
-                                    "abstract"
-                                    , "apechain"
-                                    , "arbitrum"
-                                    , "avalanche_c"
-                                    , "b3"
-                                    , "base"
-                                    , "berachain"
-                                    , "blast"
-                                    , "bnb"
-                                    , "bob"
-                                    , "boba"
-                                    , "celo"
-                                    , "corn"
-                                    , "degen"
-                                    , "ethereum"
-                                    , "fantom"
-                                    , "flare"
-                                    , "flow"
-                                    , "gnosis"
-                                    , "hemi"
-                                    , "henesys"
-                                    , "hyperevm"
-                                    , "ink"
-                                    , "kaia"
-                                    , "katana"
-                                    , "lens"
-                                    , "linea"
-                                    , "mantle"
-                                    , "mezo"
-                                    , "monad"
-                                    , "nova"
-                                    , "opbnb"
-                                    , "optimism"
-                                    , "peaq"
-                                    , "plasma"
-                                    , "plume"
-                                    , "polygon"
-                                    , "ronin"
-                                    , "scroll"
-                                    , "sei"
-                                    , "shape"
-                                    , "somnia"
-                                    , "sonic"
-                                    , "sophon"
-                                    , "story"
-                                    , "superseed"
-                                    , "tac"
-                                    , "taiko"
-                                    , "tron"
-                                    , "unichain"
-                                    , "worldchain"
-                                    , "zkevm"
-                                    , "zksync"
-                                    , "zora"
-                                ]\',
-                                "sector",
-                                "gas",
-                                \'["soispoke", "ilemi", "0xRob", "jeff-dude", "krishhh", "tomfutago"]\'
-                            )
-                        }}'
+    post_hook='{{ expose_spells(blockchains = \'["' + chains | join('","') + '"]\',
+                                spell_type = "sector",
+                                spell_name = "gas",
+                                contributors = \'["soispoke", "ilemi", "0xRob", "jeff-dude", "krishhh", "tomfutago"]\') }}'
         )
 }}
-
-{% set chains = [
-    "abstract"
-    , "apechain"
-    , "arbitrum"
-    , "avalanche_c"
-    , "b3"
-    , "base"
-    , "berachain"
-    , "blast"
-    , "bnb"
-    , "bob"
-    , "boba"
-    , "celo"
-    , "corn"
-    , "degen"
-    , "ethereum"
-    , "fantom"
-    , "flare"
-    , "flow"
-    , "gnosis"
-    , "hemi"
-    , "henesys"
-    , "hyperevm"
-    , "ink"
-    , "kaia"
-    , "katana"
-    , "linea"
-    , "lens"
-    , "mantle"
-    , "mezo"
-    , "monad"
-    , "nova"
-    , "opbnb"
-    , "optimism"
-    , "peaq"
-    , "plasma"
-    , "plume"
-    , "polygon"
-    , "ronin"
-    , "scroll"
-    , "sei"
-    , "shape"
-    , "somnia"
-    , "sonic"
-    , "sophon"
-    , "story"
-    , "superseed"
-    , "tac"
-    , "taiko"
-    , "tron"
-    , "unichain"
-    , "worldchain"
-    , "zkevm"
-    , "zksync"
-    , "zora"
-] %}
 
 
 SELECT
@@ -135,6 +23,7 @@ FROM
         ,block_time
         ,block_number
         ,tx_hash
+        ,tx_index
         ,tx_from
         ,tx_to
         ,gas_price

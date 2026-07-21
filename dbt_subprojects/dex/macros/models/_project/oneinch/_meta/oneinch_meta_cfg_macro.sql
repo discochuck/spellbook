@@ -18,6 +18,14 @@
     ]) }}
 {% endmacro %}
 
+-- ERC20True placeholder used as the counter-leg of Fusion+ cross-chain orders: https://github.com/1inch/cross-chain-swap/blob/master/contracts/mocks/ERC20True.sol
+{% macro oneinch_cross_chain_placeholder_tokens_cfg_macro() %}
+    {{ return([
+        '0xda0000d4000015a526378bb6fafc650cea5966f8',
+        '0xd66097c27eb8dee404bac235737932260edc6f3b',
+    ]) }}
+{% endmacro %}
+
 -- SUBSTREAMS CONFIGURATIONS --
 {% macro oneinch_ar_raw_calls_cfg_macro()   %} {{ return(dict(oneinch_ar_cfg_macro(), start="2019-06-01")) }} {% endmacro %}
 {% macro oneinch_ar_transfers_cfg_macro()   %} {{ return(dict(oneinch_ar_cfg_macro(), start="2019-06-01")) }} {% endmacro %}
@@ -73,7 +81,7 @@
         "native_token_symbol"           : "'ETH'",
         "wrapped_native_token_address"  : "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
         "explorer_link"                 : "'https://etherscan.io'",
-        "fusion_settlement_addresses"   : ['0x2ad5004c60e16e54d5007c80ce329adde5b51ef5', '0xabd4e5fb590aa132749bbf2a04ea57efbaac399e', '0xfb2809a5314473e1165f6b58018e20ed8f07b840', '0xa88800cd213da5ae406ce248380802bd53b47647'],
+        "fusion_settlement_addresses"   : ['0x399740157391a9f1bf4e9921a8834f9bc8f2678e', '0x2ad5004c60e16e54d5007c80ce329adde5b51ef5', '0xabd4e5fb590aa132749bbf2a04ea57efbaac399e', '0xfb2809a5314473e1165f6b58018e20ed8f07b840', '0xa88800cd213da5ae406ce248380802bd53b47647'],
         "escrow_factory_addresses"      : ['0xa7bcb4eac8964306f9e3764f67db6a7af6ddf99a'],
         "atokens"                       : true,
     }) }}
@@ -314,6 +322,6 @@
         dict(oneinch_unichain_cfg_macro()   , evm=true  , fusionV1=false, exposed=["ar", "lo", "cc"], contracts=oneinch_meta_contracts_cfg_macro()),
         dict(oneinch_aurora_cfg_macro()     , evm=true  , fusionV1=false),
         dict(oneinch_klaytn_cfg_macro()     , evm=true  , fusionV1=false),
-        dict(oneinch_solana_cfg_macro()     , evm=false , fusionV1=false, exposed=["lo"]),
+        dict(oneinch_solana_cfg_macro()     , evm=false , fusionV1=false),
     ]) }}
 {% endmacro %}

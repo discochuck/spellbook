@@ -7,16 +7,14 @@
     , unique_key = ['unique_key', 'block_date']
     , partition_by = ['block_date', 'action']
     , incremental_predicates = [incremental_predicate('DBT_INTERNAL_DEST.block_time')]
-    , post_hook='{{ expose_spells(\'["solana"]\',
-                                "sector",
-                                "staking",
-                                \'["ilemi", "0xRob"]\') }}')
+    , post_hook='{{ hide_spells() }}')
 }}
 
 with
     aa as (
         SELECT
             address
+            , address_prefix
             , block_slot
             , tx_id
             , balance_change
@@ -48,6 +46,7 @@ with
         FROM aa
         JOIN {{ source('stake_program_solana', 'stake_call_Merge') }} m ON 1=1 
             AND aa.address = m.account_sourceStakeAccount --the source table gets completely merged so this is safest to join on
+            AND aa.address_prefix = substring(m.account_sourceStakeAccount, 1, 2)
             AND aa.block_slot = m.call_block_slot
             AND aa.tx_id = m.call_tx_id
         where 1=1 

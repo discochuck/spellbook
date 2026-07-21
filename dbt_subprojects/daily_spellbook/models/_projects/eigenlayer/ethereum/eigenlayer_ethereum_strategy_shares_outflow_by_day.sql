@@ -1,12 +1,10 @@
-{{ 
+-- ci stamp: 1
+{{
     config(
         schema = 'eigenlayer_ethereum',
-        alias = 'strategy_shares_outflow_by_day',
-        post_hook='{{ expose_spells(\'["ethereum"]\',
-                                    "project",
-                                    "eigenlayer",
-                                    \'["bowenli"]\') }}',
-        materialized = 'table',
+        alias = 'strategy_shares_outflow_by_day'
+        , post_hook='{{ hide_spells() }}'
+        , materialized = 'table',
         unique_key = ['strategy', 'date']
     )
 }}

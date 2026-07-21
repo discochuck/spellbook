@@ -5,13 +5,14 @@
     materialized = 'incremental',
     file_format = 'delta',
     incremental_strategy = 'merge',
+    merge_skip_unchanged = true,
     unique_key = ['block_date','unique_key'],
-    incremental_predicates = [incremental_predicate('DBT_INTERNAL_DEST.block_date')],
-    post_hook='{{ expose_spells(\'["tron"]\',
-                                "sector",
-                                "tokens",
-                                \'["0xRob"]\') }}'
-)
+    incremental_predicates = [incremental_predicate('DBT_INTERNAL_DEST.block_date')]
+    , post_hook='{{ expose_spells(blockchains = \'["tron"]\',
+                                        spell_type = "sector",
+                                        spell_name = "tokens_tron",
+                                        contributors = \'["aalan3", "jeff-dude", "0xBoxer", "hildobby", "0xRob", "hosuke", "tomfutago"]\') }}'
+    )
 }}
 
 {% set transfers_start_date = '2018-10-11' %}
@@ -26,7 +27,7 @@ WITH base_transfers as (
         {% if is_incremental() -%}
         AND {{ incremental_predicate('block_date') }}
         {% else -%}
-        AND block_date >= TIMESTAMP '{{ transfers_start_date }}'
+        AND block_date >= date '{{ transfers_start_date }}'
         {% endif -%}
 )
 , prices AS (
@@ -44,8 +45,8 @@ WITH base_transfers as (
         {% if is_incremental() -%}
         AND {{ incremental_predicate('timestamp') }}
         {% else -%}
-        AND timestamp >= TIMESTAMP '{{ transfers_start_date }}'
-        {% endif -%}    
+        AND timestamp >= timestamp '{{ transfers_start_date }}'
+        {% endif -%}
 )
 , trusted_tokens AS (
     SELECT
@@ -82,7 +83,8 @@ WITH base_transfers as (
         , t.amount_raw / power(10, coalesce(tokens_erc20.decimals, prices.decimals)) AS amount
         , prices.price AS price_usd
         , t.amount_raw / power(10, coalesce(tokens_erc20.decimals, prices.decimals)) * prices.price AS amount_usd
-        , CASE WHEN trusted_tokens.blockchain IS NOT NULL THEN true ELSE false END AS is_trusted_token        
+        , CASE WHEN trusted_tokens.blockchain IS NOT NULL THEN true ELSE false END AS is_trusted_token
+        , t._updated_at
     FROM
         base_transfers as t
     LEFT JOIN
@@ -132,6 +134,7 @@ WITH base_transfers as (
             WHEN (is_trusted_token = false AND amount_usd < 1000000000) THEN amount_usd
             WHEN (is_trusted_token = false AND amount_usd >= 1000000000) THEN CAST(NULL as double) /* ignore inflated outlier prices */
             END AS amount_usd
+        , _updated_at
     FROM
         transfers
 )

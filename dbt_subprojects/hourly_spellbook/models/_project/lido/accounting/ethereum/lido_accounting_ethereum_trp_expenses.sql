@@ -2,12 +2,10 @@
         schema='lido_accounting_ethereum',
         alias = 'trp_expenses',
 
-        materialized = 'table',
+        materialized = 'incremental',
         file_format = 'delta',
-        post_hook='{{ expose_spells(\'["ethereum"]\',
-                                "project",
-                                "lido_accounting",
-                                \'["pipistrella", "adcv", "zergil1397"]\') }}'
+        incremental_strategy = 'append'
+        , post_hook='{{ hide_spells() }}'
         )
 }}
 
@@ -70,6 +68,9 @@ trp_expenses_txns AS (
             FROM multisigs_list
             WHERE name IN ('TRPMsig') AND chain = 'Ethereum'
     )
+        {% if is_incremental() %}
+        AND {{ incremental_predicate('evt_block_time') }}
+        {% endif %}
 
 )
 
@@ -78,6 +79,19 @@ trp_expenses_txns AS (
         contract_address AS token,
         value AS amount_token,
         evt_tx_hash
-    FROM trp_expenses_txns
+    FROM trp_expenses_txns x
+    {% if is_incremental() %}
+    -- append-only dedup: drop rows already inserted by a previous run inside the
+    -- incremental window (no event index in the output, so a merge unique_key would
+    -- collapse legitimately duplicated transfers within one tx)
+    WHERE not exists (
+        select 1
+        from {{ this }} t
+        where t.period = x.evt_block_time
+          and t.token = x.contract_address
+          and t.amount_token = x.value
+          and t.evt_tx_hash = x.evt_tx_hash
+    )
+    {% endif %}
 
 
